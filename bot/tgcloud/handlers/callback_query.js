@@ -8,6 +8,19 @@ import { getState, setState, clearState } from '../lib/state.js';
 import { bookLink } from '../lib/botinfo.js';
 import { finishOnboarding, onboardingName } from '../lib/svc/onboarding.js';
 
+// ack — подтверждение нажатия. Само по себе необязательно: если Telegram уже
+// счёл запрос устаревшим (400), это не должно срывать основную обработку.
+async function ack(cq, text) {
+  try {
+    await api.answerCallbackQuery({
+      callback_query_id: cq.id,
+      ...(text ? { text } : {}),
+    });
+  } catch (e) {
+    console.warn('answerCallbackQuery failed (non-fatal)', e?.description || e);
+  }
+}
+
 export default async function (cq, ctx) {
   const data = cq.data || '';
   const [area, action, arg] = data.split(':');
@@ -20,17 +33,15 @@ export default async function (cq, ctx) {
     if (area === 'onb') return await onOnb(chatId, from, action, arg, cq);
     if (area === 'fsm') return await onFsmCancel(chatId, from, cq);
 
-    await api.answerCallbackQuery({ callback_query_id: cq.id });
+    await ack(cq);
   } catch (e) {
     console.error('callback handler failed', { data, e });
-    try {
-      await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'Ошибка, попробуйте ещё раз' });
-    } catch { /* ignore */ }
+    await ack(cq, 'Ошибка, попробуйте ещё раз');
   }
 }
 
 async function onMenu(chatId, from, section, cq) {
-  await api.answerCallbackQuery({ callback_query_id: cq.id });
+  await ack(cq);
   const master = await getMasterByTg(from.id);
   if (!master) return void (await api.sendMessage({ chat_id: chatId, text: T.CLIENT_NO_PAYLOAD }));
 
@@ -50,24 +61,24 @@ async function onMenu(chatId, from, section, cq) {
 async function onTz(chatId, from, action, arg, cq) {
   const st = await getState(chatId);
   if (!st || st.state !== 'onb:tz') {
-    return void (await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'Диалог уже завершён' }));
+    return void (await ack(cq, 'Диалог уже завершён'));
   }
   if (action === 'pick') {
     const tz = TZ_OPTIONS[Number(arg)];
-    if (!tz) return void (await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'Нет такой зоны' }));
-    await api.answerCallbackQuery({ callback_query_id: cq.id });
+    if (!tz) return void (await ack(cq, 'Нет такой зоны'));
+    await ack(cq);
     return void (await finishOnboarding(chatId, from, tz));
   }
-  await api.answerCallbackQuery({ callback_query_id: cq.id });
+  await ack(cq);
 }
 
 // «Оставить имя как есть» в онбординге.
 async function onOnb(chatId, from, action, arg, cq) {
   const st = await getState(chatId);
   if (!st || st.state !== 'onb:name') {
-    return void (await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'Диалог уже завершён' }));
+    return void (await ack(cq, 'Диалог уже завершён'));
   }
-  await api.answerCallbackQuery({ callback_query_id: cq.id });
+  await ack(cq);
   if (action === 'name_def') {
     await onboardingName(chatId, from, '-');
   }
@@ -75,7 +86,7 @@ async function onOnb(chatId, from, action, arg, cq) {
 
 // «❌ Отмена» — прервать FSM без побочных эффектов (spec §17, T19).
 async function onFsmCancel(chatId, from, cq) {
-  await api.answerCallbackQuery({ callback_query_id: cq.id, text: 'Отменено' });
+  await ack(cq, 'Отменено');
   await clearState(chatId);
   const master = await getMasterByTg(from.id);
   await api.sendMessage({

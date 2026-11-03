@@ -1,2 +1,5 @@
 .tgcloud/
 node_modules/
+
+# Local secrets
+.env

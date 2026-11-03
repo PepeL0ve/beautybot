@@ -70,13 +70,29 @@
 6. БД: `npx tgcloud migrate` (категории safe/warning/manual).
 7. Служебные: `status`, `diff`, `fetch`, `pull`, `reset`, `webhook sync`.
 
-## Риски / UNKNOWN (проверить в Фазе 0)
+## Риски / UNKNOWN (проверено в Фазе 0 — 2026-11-04)
 
-- UNKNOWN: лимит времени/памяти одной инвокации → влияет на размер чанка
-  рассылок; проверим на живом боте.
-- UNKNOWN: полнота ICU/Intl (таймзоны) в изоляте → проверим `tgcloud run`.
-- UNKNOWN: полный список поддерживаемых типов update-файлов → команда `add`
-  выводит валидный набор.
+- ✅ Intl/ICU доступен в изоляте: `Intl.DateTimeFormat` с `Asia/Yekaterinburg`
+  дал `10:00` для 05:00Z (UTC+5), `ru-RU` форматирует («чт, 5 ноября»).
+- ✅ Лимит инвокации достаточен: простой обработчик — 4 мс, смоук с 17 таблицами
+  и Bot API getMe — 136 мс. Чанк рассылки 20 сообщений укладывается с запасом.
+- ✅ Типы update: webhook принимает `message, callback_query` (см. `tgcloud webhook`).
+- ✅ `tgcloud run` передаёт **сам payload** (Message/CallbackQuery), не обёртку `{message:…}`.
+  Только `handlers/` и `endpoints/` запускаемы; `lib/*` — лишь через импорт.
+- ✅ Динамический `import()` в модулях **не поддерживается** — только статические.
+- ✅ Относительные импорты из вложенных папок: из `lib/svc/x.js` путь к соседу
+  пишется `../kb.js`, а не `../lib/kb.js` (иначе «Compilation failed» без деталей —
+  ловится `bot/scripts/check-imports.mjs`).
+- ✅ Стек БД: миграция 17 таблиц применилась; json-колонки и timestamp
+  читаются с конверсией; `onConflictDoUpdate` работает.
+
+## Фактическая конфигурация (Фаза 0)
+
+- Бот: **@BeautyGrodnoBot** (id 9138662588), webhook
+  `https://cloud.telegram.org/app9138662588/webhook`, in sync.
+- Локальный репозиторий: `C:\Users\FLYXSE\beautyBOT`, проект — `bot/`.
+- Доступ владельца: `access_list` = 969434663 (онбординг пройден, мастер
+  `H7833SFU`, Europe/Moscow).
 
 ## Fallback
 

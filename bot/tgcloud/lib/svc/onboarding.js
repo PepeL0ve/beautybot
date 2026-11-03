@@ -1,11 +1,11 @@
 // lib/svc/onboarding.js — регистрация мастера (spec §4).
 
 import { api } from 'sdk';
-import { T } from '../lib/i18n/ru.js';
-import { mainMenu, tzMenu } from '../lib/kb.js';
-import { createMaster } from '../lib/access.js';
-import { setState, clearState } from '../lib/state.js';
-import { bookLink } from '../lib/botinfo.js';
+import { T } from '../i18n/ru.js';
+import { mainMenu, tzMenu } from '../kb.js';
+import { createMaster } from '../access.js';
+import { getState, setState, clearState } from '../state.js';
+import { bookLink } from '../botinfo.js';
 
 export function validTz(tz) {
   try {
