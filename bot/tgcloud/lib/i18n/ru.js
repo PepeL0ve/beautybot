@@ -1,6 +1,16 @@
 // lib/i18n/ru.js — ВСЕ тексты интерфейса (spec §17). Разметка HTML.
 
 import { esc } from '../fmt.js';
+import { fmtDate, localDate, localMin, minToHHMM } from '../time.js';
+
+// Подписи статусов записи (используются в карточке и кнопках).
+export const STATUS_TEXT = {
+  pending: '⏳ Ждёт подтверждения',
+  confirmed: '✅ Подтверждена',
+  completed: '✔️ Завершена',
+  canceled: '❌ Отменена',
+  no_show: '🚫 Неявка',
+};
 
 export const T = {
   ERR: '⚠️ Что-то пошло не так. Попробуйте ещё раз.',
@@ -32,4 +42,105 @@ export const T = {
   CLIENT_CARD: (m) =>
     `💅 <b>${esc(m.name)}</b>\n${m.publicBlurb ? esc(m.publicBlurb) + '\n' : ''}\n🕐 Часовой пояс мастера: ${esc(m.timezone)}\n\n Онлайн-запись откроется после настройки мастером каталога услуг.`,
   MASTER_NOT_FOUND: '🤷 Мастер не найден — проверьте ссылку.',
+
+  // ---------- Фаза 1: услуги ----------
+  SVC_LIST_EMPTY:
+    '💼 <b>Услуги</b>\n\nПока пусто. Добавьте услугу — без неё записать клиента нельзя.',
+  SVC_LIST: (rows) =>
+    `💼 <b>Услуги</b>\n\n${rows.join('\n')}\n\nВыберите услугу, чтобы изменить.`,
+  SVC_ASK_NAME: '1/4 · Название услуги?\n\nНапример: «Стрижка женская».',
+  SVC_ASK_DURATION:
+    '2/4 · Сколько длится? Выберите кнопкой или отправьте число минут (от 5 до 600).',
+  SVC_ASK_PRICE: '3/4 · Цена в рублях?\n\nМожно с копейками: 1500 или 1500,50.',
+  SVC_ASK_PRICE_BAD: '🤔 Не похоже на цену. Отправьте число, например 1500 или 1500,50.',
+  SVC_ASK_FROM: (name, money, dur) =>
+    `Услуга «${esc(name)}» · ${dur} мин · ${esc(money)}\n\nЦена указывается как «от» (окончательная зависит от работы)?`,
+  SVC_ASK_DESC: 'Добавьте короткое описание (не обязательно). Отправьте «-», чтобы пропустить.',
+  SVC_ASK_POPULAR: 'Показывать эту услугу в «популярных» на странице записи?',
+  SVC_ASK_DURATION_BAD: '🤔 Нужно целое число минут от 5 до 600.',
+  SVC_SAVED: (name) => `✅ Услуга «${esc(name)}» сохранена.`,
+  SVC_DELETED: '🗑 Услуга удалена.',
+  SVC_DELETE_BLOCKED:
+    '⛔ Нельзя удалить: на эту услугу есть будущие записи. Сначала перенесите или отмените их.',
+  SVC_CARD: (s, money) =>
+    `💼 <b>${esc(s.name)}</b>\n\n🕑 ${s.durationMin} мин\n💰 ${s.priceFrom ? 'от ' : ''}${esc(money)}` +
+    `${s.description ? '\n\n' + esc(s.description) : ''}\n\n${s.active ? '🟢 Активна' : '⚪️ Скрыта'}` +
+    `${s.isPopular ? '\n⭐️ Популярная' : ''}`,
+  SVC_EDIT_NAME: 'Отправьте новое название.',
+  SVC_EDIT_DURATION: 'Отправьте новую длительность в минутах (5–600).',
+  SVC_EDIT_PRICE: 'Отправьте новую цену в рублях (1500 или 1500,50).',
+  SVC_EDIT_DESC: 'Отправьте новое описание. «-» — удалить описание.',
+
+  // ---------- Фаза 1: расписание ----------
+  SCH_TITLE: (summary) =>
+    `🗓 <b>Рабочие часы</b>\n\n${esc(summary)}\n\nНажмите день, чтобы включить/выключить или изменить время.`,
+  SCH_ASK_START: (day) => `⏰ Начало рабочего дня в ${esc(day)}?\n\nФормат: 10:00`,
+  SCH_ASK_END: (day, start) => `⏰ Конец рабочего дня в ${esc(day)} (начало в ${start})?\n\nФормат: 19:00`,
+  SCH_BAD_TIME: '🤔 Не понял время. Отправьте в формате 10:00 (часы 0–23, минуты 0–59).',
+  SCH_BAD_RANGE: '⛔ Конец должен быть позже начала. Попробуйте ещё раз.',
+  SCH_SAVED_DAY: (day, start, end) => `✅ ${esc(day)}: ${start}–${end}`,
+  SCH_DAY_OFF: (day) => `✅ ${esc(day)} — выходной.`,
+  SCH_TIMEOFF_EMPTY: '📌 На ближайшие 14 дней перерывов и выходных нет.',
+  SCH_TIMEOFF_TITLE: (lines) =>
+    `📌 <b>Перерывы и выходные</b> (14 дней)\n\n${lines.join('\n')}\n\nНажмите, чтобы удалить.`,
+  SCH_TOFF_KIND:
+    'Что добавить на эту дату?\n\n☕ перерыв — часть дня\n🏖 выходной — весь день\n👤 личное дело — часть дня с заметкой',
+  SCH_TOFF_ASK_START: '⏰ Во сколько начинается? Формат: 13:00',
+  SCH_TOFF_ASK_END: (start) => `⏰ Во сколько заканчивается? Начало в ${start}, формат: 14:00`,
+  SCH_TOFF_ASK_NOTE: 'Короткая заметка (например, «обед»). «-» — без заметки.',
+  SCH_TOFF_ADDED: (label) => `✅ Добавлено: ${esc(label)}`,
+  SCH_TOFF_DELETED: '🗑 Удалено.',
+  SCH_TPL_TITLE: (lines) =>
+    `📐 <b>Шаблоны расписания</b>\n\n${lines.join('\n')}\n\nПрименение шаблона перезапишет рабочие часы всех дней недели.`,
+  SCH_TPL_EMPTY: '📐 Шаблонов пока нет. Создайте из текущих часов.',
+  SCH_TPL_ASK_NAME: 'Название шаблона? Например: «Лето, вторник–суббота».',
+  SCH_TPL_SAVED: (name) => `✅ Шаблон «${esc(name)}» сохранён.`,
+  SCH_TPL_APPLIED: (name) => `✅ Шаблон «${esc(name)}» применён ко всем дням недели.`,
+  SCH_SLOTS_TITLE: (date, priceHint) =>
+    `🕳 <b>Свободные окна</b> на ${esc(date)}\n\n${priceHint}`,
+
+  // ---------- Фаза 1: записи ----------
+  AP_TODAY_EMPTY: (date) => `📅 <b>${esc(date)}</b>\n\nЗаписей нет.`,
+  AP_DAY_TITLE: (date, lines, freeCount) =>
+    `📅 <b>${esc(date)}</b>\n\n${lines.join('\n')}\n\n🕳 Свободных окон: ${freeCount}`,
+  AP_WEEK_TITLE: (lines) =>
+    `🗓 <b>Неделя</b>\n\n${lines.join('\n')}\n\nНажмите день, чтобы открыть его.`,
+  AP_CARD: (ap, tz, money) =>
+    `${ap.status === 'pending' ? '⏳' : ap.status === 'canceled' ? '❌' : '✅'} ` +
+    `<b>${esc(fmtDate(localDate(tz, ap.startsAt)))}, ${minToHHMM(localMin(tz, ap.startsAt))}</b>\n` +
+    `👤 ${esc(ap.client?.displayName || 'Клиент')}\n` +
+    `💼 ${esc(ap.service?.name || 'Без услуги')} (${Math.round((ap.endsAt - ap.startsAt) / 60)} мин)\n` +
+    `💰 ${esc(money)}\n` +
+    `${STATUS_TEXT[ap.status] || ''}${ap.prepaid ? '\n💳 Предоплата получена' : ''}` +
+    `${ap.note ? '\n📝 ' + esc(ap.note) : ''}`,
+  AP_STATUS_SET: (label) => `✅ Статус: ${esc(label)}`,
+  AP_PREPAID_ON: '💳 Предоплата отмечена.',
+  AP_PREPAID_OFF: '💳 Отметка предоплаты снята.',
+  AP_DELETED: '🗑 Запись удалена.',
+  AP_CONFLICT: '⛔ Это время пересекается с другой записью. Выберите другое.',
+  AP_ASK_CLIENT:
+    '👤 Кому запись?\n\nОтправьте имя для поиска или выберите клиента из списка.',
+  AP_NEW_CLIENT_NAME: 'Новый клиент. Как его зовут?',
+  AP_ASK_CLIENT_PHONE:
+    'Телефон клиента? Отправьте номер или «-», чтобы пропустить.\n\nБез Telegram клиенту нельзя написать через бота — только скопировать текст.',
+  AP_ASK_SERVICE: '💼 Какую услугу выполняем?',
+  AP_ASK_DATE: '📆 На какую дату?',
+  AP_ASK_TIME: '🕐 Выберите свободное время или отправьте своё в формате 14:30.',
+  AP_BAD_TIME: '🤔 Не понял время. Отправьте в формате 14:30.',
+  AP_NOWORK: '⛔ В этот день нет рабочих часов. Настройте расписание или выберите другой день.',
+  AP_NO_SLOTS: '⛔ На эту дату нет свободных окон. Выберите другой день.',
+  AP_ASK_PRICE: (service, defMoney) =>
+    `💰 Цена для этой записи?\n\nУслуга «${esc(service)}»: ${esc(defMoney)}. Отправьте свою сумму или «-», чтобы оставить.`,
+  AP_CREATED: (ap, tz, money) =>
+    `✅ Запись создана\n\n📅 ${esc(fmtDate(localDate(tz, ap.startsAt)))}, ${minToHHMM(localMin(tz, ap.startsAt))}\n` +
+    `👤 ${esc(ap.clientName || 'Клиент')}\n💼 ${esc(ap.serviceName || 'Без услуги')}\n💰 ${esc(money)}`,
+  AP_ASK_MOVE_DATE: '📆 На какую дату перенести?',
+  AP_ASK_MOVE_TIME: '🕐 Новое время (свободные окна выше) или своё в формате 14:30.',
+  AP_MOVED: '✅ Запись перенесена.',
+  AP_ASK_NOTE: '📝 Заметка к записи. «-» — удалить заметку.',
+
+  // ---------- общее ----------
+  BACK_TO_MENU: '🏠 Меню',
+  BACK: '⬅️ Назад',
+  BTN_ADD: '➕ Добавить',
 };

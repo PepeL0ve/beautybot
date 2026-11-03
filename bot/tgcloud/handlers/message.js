@@ -10,6 +10,9 @@ import {
 } from '../lib/svc/onboarding.js';
 import { runSweep } from '../lib/svc/sweep.js';
 import { ticks } from '../schema.js';
+import { svcTextInput } from '../lib/fsm/services.js';
+import { hoursTextInput } from '../lib/fsm/hours.js';
+import { apTextInput } from '../lib/fsm/appointments.js';
 
 export default async function (message, ctx) {
   const chatId = message.chat.id;
@@ -17,7 +20,7 @@ export default async function (message, ctx) {
   const text = (message.text || '').trim();
 
   try {
-    if (text === '/tick') return await handleTick(from, chatId);
+    if (text === '/tick') return await handleTick(from);
     if (text.startsWith('/start')) return await handleStart(message, chatId, from);
     if (text === '/menu') return await sendMenu(chatId, from);
 
@@ -30,6 +33,24 @@ export default async function (message, ctx) {
       }
       if (st.state === 'onb:name') return void (await onboardingName(chatId, from, text));
       if (st.state === 'onb:tz') return void (await onboardingTzText(chatId, from, text));
+
+      // Диалоги Фазы 1: услуги, расписание, записи.
+      const master = await getMasterByTg(from.id);
+      if (master) {
+        const nowSec = Math.floor(Date.now() / 1000);
+        if (st.state.startsWith('svc:')) {
+          const handled = await svcTextInput(chatId, from.id, st, text, master);
+          if (handled !== false) return;
+        }
+        if (st.state.startsWith('sch:') || st.state.startsWith('toff:') || st.state.startsWith('tpl:')) {
+          const handled = await hoursTextInput(chatId, from.id, st, text, master);
+          if (handled !== false) return;
+        }
+        if (st.state.startsWith('ap:')) {
+          const handled = await apTextInput(chatId, from.id, st, text, master, nowSec);
+          if (handled !== false) return;
+        }
+      }
     }
 
     // Ничего не распознано — контекстная подсказка
@@ -82,7 +103,7 @@ async function onboardingTzText(chatId, from, text) {
 }
 
 // /tick — скрытая команда свипа (spec §13). Без видимого ответа.
-async function handleTick(from, chatId) {
+async function handleTick(from) {
   if (!(await isAllowed(from.id))) return; // чужим молча игнорируем
   await db.insert(ticks).values({ note: 'manual' }).run();
   try {
