@@ -43,16 +43,16 @@ export default async function (cq, ctx) {
 async function onMenu(chatId, from, section, cq) {
   await ack(cq);
   const master = await getMasterByTg(from.id);
-  if (!master) return void (await api.sendMessage({ chat_id: chatId, text: T.CLIENT_NO_PAYLOAD }));
+  if (!master) return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.CLIENT_NO_PAYLOAD }));
 
   if (section === 'link') {
     const link = await bookLink(master.masterCode);
     return void (
-      await api.sendMessage({ chat_id: chatId, text: T.LINK(master.name, master.masterCode, link) })
+      await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.LINK(master.name, master.masterCode, link) })
     );
   }
 
-  await api.sendMessage({ chat_id: chatId, text: T.WIP, reply_markup: mainMenu() });
+  await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.WIP, reply_markup: mainMenu() });
   // Фазы 1–5: записи (ap), расписание (sch), клиенты (cli), рассылка (mail),
   // финансы (fin), настройки (set).
 }
@@ -91,6 +91,7 @@ async function onFsmCancel(chatId, from, cq) {
   const master = await getMasterByTg(from.id);
   await api.sendMessage({
     chat_id: chatId,
+    parse_mode: 'HTML',
     text: 'Диалог прерван.' + (master ? '\n\n' + T.MENU_TITLE(master.name) : ''),
     reply_markup: master ? mainMenu() : undefined,
   });

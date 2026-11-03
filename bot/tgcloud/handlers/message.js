@@ -26,7 +26,7 @@ export default async function (message, ctx) {
     if (st) {
       if (text === '/cancel') {
         await clearState(chatId);
-        return void (await api.sendMessage({ chat_id: chatId, text: 'Диалог прерван.' }));
+        return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: 'Диалог прерван.' }));
       }
       if (st.state === 'onb:name') return void (await onboardingName(chatId, from, text));
       if (st.state === 'onb:tz') return void (await onboardingTzText(chatId, from, text));
@@ -35,22 +35,22 @@ export default async function (message, ctx) {
     // Ничего не распознано — контекстная подсказка
     const master = await getMasterByTg(from.id);
     if (master) {
-      await api.sendMessage({ chat_id: chatId, text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
+      await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
     } else {
-      await api.sendMessage({ chat_id: chatId, text: T.CLIENT_NO_PAYLOAD });
+      await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.CLIENT_NO_PAYLOAD });
     }
   } catch (e) {
     console.error('message handler failed', e);
     try {
-      await api.sendMessage({ chat_id: chatId, text: T.ERR });
+      await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.ERR });
     } catch { /* чат мог быть недоступен */ }
   }
 }
 
 async function sendMenu(chatId, from) {
   const master = await getMasterByTg(from.id);
-  if (!master) return void (await api.sendMessage({ chat_id: chatId, text: T.CLIENT_NO_PAYLOAD }));
-  await api.sendMessage({ chat_id: chatId, text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
+  if (!master) return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.CLIENT_NO_PAYLOAD }));
+  await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
 }
 
 // /start — маршрутизация по payload (deep link) и доступу (spec §3).
@@ -59,16 +59,16 @@ async function handleStart(message, chatId, from) {
 
   if (payload.startsWith('book_')) {
     const master = await getMasterByCode(payload.slice(5).toUpperCase());
-    if (!master) return void (await api.sendMessage({ chat_id: chatId, text: T.MASTER_NOT_FOUND }));
+    if (!master) return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.MASTER_NOT_FOUND }));
     // Фаза 0: визитка без кнопок записи. Фаза 3 добавит флоу.
-    return void (await api.sendMessage({ chat_id: chatId, text: T.CLIENT_CARD(master) }));
+    return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.CLIENT_CARD(master) }));
   }
 
   const master = await getMasterByTg(from.id);
   if (master) return void (await sendMenu(chatId, from));
 
   if (!(await isAllowed(from.id))) {
-    return void (await api.sendMessage({ chat_id: chatId, text: T.DENIED(from.id) }));
+    return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.DENIED(from.id) }));
   }
   await startOnboarding(chatId, from);
 }
@@ -76,7 +76,7 @@ async function handleStart(message, chatId, from) {
 // Шаг онбординга 2: часовой пояс текстом (IANA).
 async function onboardingTzText(chatId, from, text) {
   if (!validTz(text)) {
-    return void (await api.sendMessage({ chat_id: chatId, text: T.ONB_BAD_TZ }));
+    return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.ONB_BAD_TZ }));
   }
   await finishOnboarding(chatId, from, text.trim());
 }

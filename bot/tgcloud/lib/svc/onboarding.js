@@ -21,6 +21,7 @@ export async function startOnboarding(chatId, from) {
   await setState(chatId, from.id, 'onb:name', { defName });
   await api.sendMessage({
     chat_id: chatId,
+    parse_mode: 'HTML',
     text: T.ONB_ASK_NAME(defName),
     reply_markup: {
       inline_keyboard: [[{ text: '➡️ Оставить как есть', callback_data: 'onb:name_def:-' }]],
@@ -33,7 +34,7 @@ export async function onboardingName(chatId, from, text) {
   const st = await getState(chatId);
   const name = (text === '-' ? st?.data?.defName : text)?.trim().slice(0, 64);
   await setState(chatId, from.id, 'onb:tz', { name: name || 'Мастер' });
-  await api.sendMessage({ chat_id: chatId, text: T.ONB_ASK_TZ, reply_markup: tzMenu() });
+  await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.ONB_ASK_TZ, reply_markup: tzMenu() });
 }
 
 // Финал: создание мастера + приветствие со ссылкой записи.
@@ -43,6 +44,6 @@ export async function finishOnboarding(chatId, from, timezone) {
   const master = await createMaster({ tgUserId: from.id, tgChatId: chatId, name, timezone });
   await clearState(chatId);
   const link = await bookLink(master.masterCode);
-  await api.sendMessage({ chat_id: chatId, text: T.ONB_DONE(master.name, timezone, link) });
-  await api.sendMessage({ chat_id: chatId, text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
+  await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.ONB_DONE(master.name, timezone, link) });
+  await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.MENU_TITLE(master.name), reply_markup: mainMenu() });
 }
