@@ -11,6 +11,7 @@ import { finishOnboarding, onboardingName } from '../lib/svc/onboarding.js';
 import { showServices, svcCallback } from '../lib/fsm/services.js';
 import { showSchedule, schCallback } from '../lib/fsm/hours.js';
 import { apCallback, showDay, showWeek } from '../lib/fsm/appointments.js';
+import { showClients, cliCallback } from '../lib/fsm/clients.js';
 import { localDate } from '../lib/time.js';
 
 // ack — подтверждение нажатия. Само по себе необязательно: если Telegram уже
@@ -59,6 +60,7 @@ export default async function (cq, ctx) {
     if (area === 'svc') { await ack(cq); return await svcCallback(cq, action, arg, master); }
     if (area === 'sch') { await ack(cq); return await schCallback(cq, action, arg, master); }
     if (area === 'ap') { await ack(cq); return await apCallback(cq, action, arg, master, nowSec); }
+    if (area === 'cli') { await ack(cq); return await cliCallback(cq, action, arg, master, nowSec); }
 
     await ack(cq);
   } catch (e) {
@@ -93,8 +95,9 @@ async function onMenu(chatId, from, action, arg, cq, nowSec) {
   if (section === 'sch') return void (await showSchedule(chatId, master));
   if (section === 'ap') return void (await showDay(chatId, master, localDate(master.timezone, nowSec), nowSec));
   if (section === 'apwk') return void (await showWeek(chatId, master, localDate(master.timezone, nowSec), nowSec));
+  if (section === 'cli') return void (await showClients(chatId, master, nowSec));
 
-  // Клиенты, рассылка, финансы, настройки — следующие фазы.
+  // Рассылка, финансы, настройки — следующие фазы.
   await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.WIP, reply_markup: mainMenu() });
 }
 

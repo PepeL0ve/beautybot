@@ -46,7 +46,11 @@ export async function showCard(chatId, master, apId) {
 
 // ---------- Создание записи (FSM) ----------
 
-export async function startAdd(chatId, userId, master) {
+export async function startAdd(chatId, userId, master, preselectedClientId = null) {
+  if (preselectedClientId) {
+    // Запись начинается из карточки клиента — клиент уже известен.
+    return void (await askService(chatId, userId, { clientId: preselectedClientId }, master));
+  }
   const clients = await listClients(master.id);
   await setState(chatId, userId, 'ap:client', { draft: {} });
   await api.sendMessage({

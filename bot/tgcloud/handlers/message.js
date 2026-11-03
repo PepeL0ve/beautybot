@@ -13,6 +13,7 @@ import { ticks } from '../schema.js';
 import { svcTextInput } from '../lib/fsm/services.js';
 import { hoursTextInput } from '../lib/fsm/hours.js';
 import { apTextInput } from '../lib/fsm/appointments.js';
+import { cliTextInput } from '../lib/fsm/clients.js';
 
 export default async function (message, ctx) {
   const chatId = message.chat.id;
@@ -48,6 +49,10 @@ export default async function (message, ctx) {
         }
         if (st.state.startsWith('ap:')) {
           const handled = await apTextInput(chatId, from.id, st, text, master, nowSec);
+          if (handled !== false) return;
+        }
+        if (st.state.startsWith('cli:')) {
+          const handled = await cliTextInput(chatId, from.id, st, text, master, nowSec);
           if (handled !== false) return;
         }
       }

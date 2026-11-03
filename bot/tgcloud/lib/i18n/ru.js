@@ -12,6 +12,22 @@ export const STATUS_TEXT = {
   no_show: '🚫 Неявка',
 };
 
+// Подписи категорий клиента (spec §9).
+export const CATEGORY_LABEL = {
+  new: '🆕 Новый',
+  regular: '⭐ Постоянный',
+  lost: '😴 Потеряшка',
+  blacklist: '⛔ Чёрный список',
+  archived: '📦 В архиве',
+};
+
+// Средняя оценка отзывов клиента (для карточки).
+export function reviewsSummaryInline(reviewRows) {
+  if (!reviewRows || !reviewRows.length) return null;
+  const avg = reviewRows.reduce((s, r) => s + r.rating, 0) / reviewRows.length;
+  return { avg: avg.toFixed(1), count: reviewRows.length };
+}
+
 export const T = {
   ERR: '⚠️ Что-то пошло не так. Попробуйте ещё раз.',
   WIP: '🚧 Раздел в разработке — появится в следующем обновлении.',
@@ -143,4 +159,72 @@ export const T = {
   BACK_TO_MENU: '🏠 Меню',
   BACK: '⬅️ Назад',
   BTN_ADD: '➕ Добавить',
+
+  // ---------- Фаза 2: CRM ----------
+  CLI_EMPTY: '👥 <b>Клиенты</b>\n\nПока никого. Клиенты появятся автоматически при первой записи, либо добавьте вручную.',
+  CLI_LIST: (filterLabel, total, page, pages, lines) =>
+    `👥 <b>Клиенты</b> · ${esc(filterLabel)}\n${total} чел. · стр. ${page + 1}/${pages}\n\n${lines.join('\n')}`,
+  CLI_SEARCH_PROMPT: '🔍 Введите имя, телефон или username для поиска. «-» — сбросить поиск.',
+  CLI_SEARCH_EMPTY: '🔍 Ничего не найдено. Попробуйте другое имя или телефон.',
+  CLI_SEARCH_DONE: (q) => `🔍 Поиск: «${esc(q)}»`,
+  CLI_CARD: (d, money) => {
+    const lines = [
+      `👤 <b>${esc(d.client.displayName)}</b>`,
+      `🏷 ${CATEGORY_LABEL[d.category] || d.category}`,
+    ];
+    if (d.client.phone) lines.push(`📞 ${esc(d.client.phone)}`);
+    if (d.client.username) lines.push(`💬 @${esc(d.client.username)}`);
+    if (d.client.birthday) lines.push(`🎂 ${esc(d.client.birthday)}`);
+    lines.push('');
+    lines.push(`📊 Визитов: <b>${d.stats.visits}</b> · всего на ${esc(money(d.stats.totalSpent))}`);
+    if (d.stats.lastVisitDate) lines.push(`🕐 Последний визит: ${esc(fmtDate(d.stats.lastVisitDate))}`);
+    else lines.push('🕐 Визитов ещё не было');
+    if (d.stats.upcoming) lines.push(`📅 Предстоящих записей: ${d.stats.upcoming}`);
+    if (d.stats.noShows) lines.push(`🚫 Неявок: ${d.stats.noShows}`);
+    if (d.groups.length) lines.push(`📁 Группы: ${d.groups.map((g) => esc(g.name)).join(', ')}`);
+    const rs = reviewsSummaryInline(d.reviews);
+    if (rs) lines.push(`⭐ Отзывы: ${rs.avg} (${rs.count})`);
+    if (d.client.notes) lines.push(`\n📝 ${esc(d.client.notes)}`);
+    if (d.history.length) {
+      lines.push('\n<b>История</b>');
+      for (const h of d.history) {
+        const mark = h.status === 'completed' ? '✔️' : h.status === 'canceled' ? '❌' : h.status === 'no_show' ? '🚫' : '⏳';
+        lines.push(`${mark} ${esc(fmtDate(h.dateStr))} · ${esc(h.serviceName || 'услуга')} · ${esc(money(h.priceCents))}`);
+      }
+    }
+    return lines.join('\n');
+  },
+  CLI_CARD_NO_TG:
+    '\n\n💡 Клиент не запускал бота — напоминания ему придётся отправлять вручную (текст можно скопировать).',
+  CLI_EDIT_NAME: 'Отправьте новое имя клиента.',
+  CLI_EDIT_PHONE: 'Отправьте телефон или «-», чтобы удалить.',
+  CLI_EDIT_BIRTHDAY: 'День рождения в формате ДД.ММ или ММ-ДД. «-» — удалить.',
+  CLI_EDIT_BIRTHDAY_BAD: '🤔 Нужен формат ДД.ММ, например 14.03.',
+  CLI_EDIT_NOTES: 'Заметка о клиенте. «-» — удалить.',
+  CLI_SAVED: '✅ Сохранено.',
+  CLI_BL_ON: '⛔ Клиент в чёрном списке: он не сможет записаться, слоты ему не показываются.',
+  CLI_BL_OFF: '✅ Клиент убран из чёрного списка.',
+  CLI_ARCH_ON: '📦 Клиент в архиве — скрыт из основного списка и рассылок.',
+  CLI_ARCH_OFF: '📤 Клиент возвращён из архива.',
+  CLI_DEL_CONFIRM: (name) =>
+    `🗑 Удалить клиента «${esc(name)}» и всю его историю? Действие необратимо.`,
+  CLI_DELETED: '🗑 Клиент удалён.',
+  CLI_DEL_BLOCKED: '⛔ Нельзя удалить: у клиента есть предстоящие записи. Сначала отмените их.',
+  CLI_ASK_NAME: 'Как зовут клиента?',
+  CLI_ASK_PHONE: 'Телефон? «-» — пропустить.',
+  CLI_ASK_BIRTHDAY: 'День рождения (ДД.ММ)? «-» — пропустить.',
+  CLI_CREATED: (name) => `✅ Клиент «${esc(name)}» добавлен.`,
+
+  // Группы
+  GRP_TITLE: (lines) => `📁 <b>Группы клиентов</b>\n\n${lines.join('\n')}`,
+  GRP_EMPTY: '📁 Групп пока нет. Создайте первую — например «VIP» или «Только по будням».',
+  GRP_ASK_NAME: 'Название новой группы?',
+  GRP_CREATED: (name) => `✅ Группа «${esc(name)}» создана.`,
+  GRP_DELETED: '🗑 Группа удалена (клиенты остались).',
+  GRP_MEMBERS: (name, lines) =>
+    `📁 <b>${esc(name)}</b>\n\n${lines.length ? lines.join('\n') : 'Пока никого.'}\n\nНажмите клиента, чтобы добавить/убрать.`,
+  GRP_DEL_CONFIRM: (name) => `🗑 Удалить группу «${esc(name)}»? Клиенты останутся, но пропадут из группы.`,
+
+  // Фильтры
+  CLI_FILTERS: 'Выберите фильтр:',
 };

@@ -385,3 +385,150 @@ export function weekMenu(days) {
   ]);
   return { inline_keyboard: kb };
 }
+
+// ---- Фаза 2: CRM ----
+
+export const cli = {
+  page: (filter, page) => `cli:pg:${filter}:${page}`,
+  filter: (key) => `cli:fl:${key}`,
+  search: () => 'cli:sr:-',
+  add: () => 'cli:add:-',
+  open: (id) => `cli:op:${id}`,
+  editName: (id) => `cli:nm:${id}`,
+  editPhone: (id) => `cli:ph:${id}`,
+  editBday: (id) => `cli:bd:${id}`,
+  editNotes: (id) => `cli:nt:${id}`,
+  book: (id) => `cli:bk:${id}`,
+  blacklist: (id) => `cli:bl:${id}`,
+  archive: (id) => `cli:ar:${id}`,
+  del: (id) => `cli:dl:${id}`,
+  delConfirm: (id) => `cli:dy:${id}`,
+  groups: (id) => `cli:gs:${id}`,
+  groupToggle: (id, gid) => `cli:gt:${id}:${gid}`,
+  groupsList: () => 'cli:gl:-',
+  groupAdd: () => 'cli:ga:-',
+  groupOpen: (gid) => `cli:go:${gid}`,
+  groupDel: (gid) => `cli:gd:${gid}`,
+  groupDelConfirm: (gid) => `cli:gy:${gid}`,
+  groupMember: (gid, cid) => `cli:gm:${gid}:${cid}`,
+};
+
+export function clientsScreenMenu(filterKey, page, pages, items) {
+  const kb = items.map((c) => [
+    {
+      text: `${catIcon(c.category)} ${c.name}${c.visits ? ' · ' + c.visits : ''}`,
+      callback_data: cli.open(c.id),
+    },
+  ]);
+  const nav = [];
+  if (page > 0) nav.push({ text: '◀️', callback_data: cli.page(filterKey, page - 1) });
+  nav.push({ text: `${page + 1}/${pages}`, callback_data: cli.filter(filterKey) });
+  if (page < pages - 1) nav.push({ text: '▶️', callback_data: cli.page(filterKey, page + 1) });
+  kb.push(nav);
+  kb.push([
+    { text: '🔍 Поиск', callback_data: cli.search() },
+    { text: '➕ Клиент', callback_data: cli.add() },
+  ]);
+  kb.push([
+    { text: '📁 Группы', callback_data: cli.groupsList() },
+    { text: '🏠 Меню', callback_data: CB.menu('menu') },
+  ]);
+  return { inline_keyboard: kb };
+}
+
+function catIcon(category) {
+  return {
+    new: '🆕', regular: '⭐', lost: '😴', blacklist: '⛔', archived: '📦',
+  }[category] || '•';
+}
+
+export function filtersMenu(current) {
+  const order = ['all', 'new', 'regular', 'lost', 'blacklist', 'archived'];
+  const labels = {
+    all: 'Все', new: '🆕 Новые', regular: '⭐ Постоянные',
+    lost: '😴 Потеряшки', blacklist: '⛔ Чёрный список', archived: '📦 Архив',
+  };
+  const kb = [];
+  for (let i = 0; i < order.length; i += 2) {
+    kb.push(order.slice(i, i + 2).map((k) => ({
+      text: (k === current ? '✅ ' : '') + labels[k],
+      callback_data: cli.filter(k),
+    })));
+  }
+  kb.push([{ text: '⬅️ К клиентам', callback_data: cli.filter(current) }]);
+  return { inline_keyboard: kb };
+}
+
+export function clientCardMenu(c) {
+  const kb = [
+    [
+      { text: '📅 Записать', callback_data: cli.book(c.id) },
+      { text: '✏️ Имя', callback_data: cli.editName(c.id) },
+    ],
+    [
+      { text: '📞 Телефон', callback_data: cli.editPhone(c.id) },
+      { text: '🎂 Д.р.', callback_data: cli.editBday(c.id) },
+    ],
+    [
+      { text: '📝 Заметка', callback_data: cli.editNotes(c.id) },
+      { text: '📁 Группы', callback_data: cli.groups(c.id) },
+    ],
+    [
+      {
+        text: c.blacklisted ? '✅ Убрать из ЧС' : '⛔ В чёрный список',
+        callback_data: cli.blacklist(c.id),
+      },
+      {
+        text: c.archived ? '📤 Из архива' : '📦 В архив',
+        callback_data: cli.archive(c.id),
+      },
+    ],
+    [{ text: '🗑 Удалить клиента', callback_data: cli.del(c.id) }],
+    [{ text: '⬅️ К клиентам', callback_data: cli.filter('all') }],
+  ];
+  return { inline_keyboard: kb };
+}
+
+export function clientGroupsMenu(clientId, allGroups, memberIds) {
+  const kb = allGroups.map((g) => [
+    {
+      text: (memberIds.includes(g.id) ? '✅ ' : '⬜️ ') + g.name,
+      callback_data: cli.groupToggle(clientId, g.id),
+    },
+  ]);
+  kb.push([{ text: '➕ Новая группа', callback_data: cli.groupAdd() }]);
+  kb.push([{ text: '⬅️ К клиенту', callback_data: cli.open(clientId) }]);
+  return { inline_keyboard: kb };
+}
+
+export function groupsMenu(groups, counts) {
+  const kb = groups.map((g) => [
+    { text: `📁 ${g.name} · ${counts[g.id] || 0}`, callback_data: cli.groupOpen(g.id) },
+  ]);
+  kb.push([
+    { text: '➕ Новая группа', callback_data: cli.groupAdd() },
+    { text: '⬅️ К клиентам', callback_data: cli.filter('all') },
+  ]);
+  return { inline_keyboard: kb };
+}
+
+export function groupMembersMenu(groupId, clients, memberIds) {
+  const kb = clients.slice(0, 20).map((c) => [
+    {
+      text: (memberIds.includes(c.id) ? '✅ ' : '⬜️ ') + c.displayName,
+      callback_data: cli.groupMember(groupId, c.id),
+    },
+  ]);
+  kb.push([{ text: '🗑 Удалить группу', callback_data: cli.groupDel(groupId) }]);
+  kb.push([{ text: '⬅️ К группам', callback_data: cli.groupsList() }]);
+  return { inline_keyboard: kb };
+}
+
+export function confirmMenuArea(area, id) {
+  return {
+    inline_keyboard: [[
+      { text: '✅ Да', callback_data: `${area}:dy:${id}` },
+      { text: '❌ Нет', callback_data: 'cli:fl:all' },
+    ]],
+  };
+}
