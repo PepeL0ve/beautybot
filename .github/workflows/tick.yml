@@ -1,0 +1,23 @@
+# GitHub Actions → /tick боту каждые 5 минут (spec §13)
+# Триггеры: schedule (cron) + workflow_dispatch (ручной запуск)
+
+name: Bot sweep
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # каждые 5 минут
+  workflow_dispatch:        # ручной запуск из Actions → Run workflow
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send /tick to bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "{\"chat_id\": ${CHAT_ID}, \"text\": \"/tick\"}"
+          echo "Tick sent at $(date -u)"
