@@ -1,7 +1,7 @@
 // lib/i18n/ru.js — ВСЕ тексты интерфейса (spec §17). Разметка HTML.
 
 import { esc } from '../fmt.js';
-import { fmtDate, localDate, localMin, minToHHMM } from '../time.js';
+import { fmtDate, localDate, localMin, minToHHMM, fmtOffset } from '../time.js';
 
 // Короткий формат суммы для визитки (без копеек, если их нет).
 function rub(cents) {
@@ -311,4 +311,43 @@ export const T = {
   CLIENT_RATE_PROMPT: '⭐ Как прошёл визит? Поставьте оценку мастеру.',
   WAITLIST_OFFER: (date) =>
     `🔔 Освободилось время на ${esc(fmtDate(date))} у мастера, к которому вы хотели попасть.\n\nУспейте записаться!`,
+
+  // ---------- Фаза 4: настройки ----------
+  SET_TITLE: (s) =>
+    `⚙️ <b>Настройки</b>\n\n` +
+    `${s.auto_confirm ? '✅' : '⬜️'} Авто-подтверждение заявок\n` +
+    `${s.only_existing ? '✅' : '⬜️'} Запись только для своих клиентов\n` +
+    `${s.birthday_greet ? '✅' : '⬜️'} Поздравления с днём рождения\n` +
+    `${s.auto_income ? '✅' : '⬜️'} Авто-доход из завершённых записей\n` +
+    `🕐 Напоминания: ${s.remind_offsets_min.map(fmtOffset).join(', ')}\n` +
+    `📅 Запись на ${s.book_days_ahead} дней вперёд`,
+  SET_TOGGLE: (key) => `set:tg:${key}`,
+  SET_PAGE: 'set:page:-',
+  SET_REGENERATE: 'set:regen:-',
+  SET_REGENERATED: (code, link) =>
+    `🔗 Новая ссылка создана:\n\n<code>${esc(link)}</code>\n\nСтарая перестанет работать. Код мастера: <code>${esc(code)}</code>`,
+  SET_PAGE_TITLE: 'Страница записи',
+  SET_ASK_BLURB: 'Короткое описание для страницы записи (1–2 предложения). «-» — удалить.',
+  SET_ASK_NAME: 'Отображаемое имя на странице записи?',
+  SET_SAVED: '✅ Сохранено.',
+
+  // ---------- Фаза 4: рассылки ----------
+  MAIL_TITLE: '📣 <b>Рассылка</b>',
+  MAIL_EMPTY: '📣 Пока нет рассылок. Создайте первую.',
+  MAIL_ASK_AUDIENCE: 'Кому отправить?',
+  MAIL_ASK_TEXT: (audience) =>
+    `Текст рассылки для ${esc(audience)}:\n\nПоддерживается подстановка {имя} — будет заменено на имя клиента.`,
+  MAIL_PREVIEW: (text, audience, count) =>
+    `📣 <b>Предпросмотр</b>\n\n${esc(text)}\n\nАудитория: ${esc(audience)} · ${count} чел.\n\nОтправить?`,
+  MAIL_STARTED: '🚀 Рассылка запущена. Отправка идёт пачками — отчёт придёт по завершении.',
+  MAIL_DONE: (sent, failed, noTg) =>
+    `📣 Рассылка завершена\n\n✅ Отправлено: ${sent}\n❌ Недоставлено: ${failed}` +
+    (noTg ? `\n\n💡 ${noTg} клиент(ов) не запускали бота — напоминание им нужно отправить вручную (текст есть в карточке клиента).` : ''),
+  MAIL_SENDING: (sent, total) => `📣 Отправка… ${sent} из ${total}`,
+
+  // ---------- Фаза 4: лист ожидания мастера ----------
+  WL_TITLE: (lines) =>
+    `🔔 <b>Лист ожидания</b>\n\n${lines.join('\n')}`,
+  WL_EMPTY: '🔔 Лист ожидания пуст.',
+  WL_DELETED: '🗑 Заявка удалена из листа ожидания.',
 };

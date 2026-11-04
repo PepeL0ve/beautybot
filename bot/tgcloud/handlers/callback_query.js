@@ -13,6 +13,8 @@ import { showSchedule, schCallback } from '../lib/fsm/hours.js';
 import { apCallback, showDay, showWeek } from '../lib/fsm/appointments.js';
 import { showClients, cliCallback } from '../lib/fsm/clients.js';
 import { bkCallback, mreqCallback } from '../lib/fsm/booking.js';
+import { showSettings, settingsCallback } from '../lib/fsm/settings.js';
+import { showMailings, mailingCallback, mailingStartCallback } from '../lib/fsm/mailings.js';
 import { localDate } from '../lib/time.js';
 
 // ack — подтверждение нажатия. Само по себе необязательно: если Telegram уже
@@ -65,6 +67,12 @@ export default async function (cq, ctx) {
     if (area === 'ap') { await ack(cq); return await apCallback(cq, action, arg, master, nowSec); }
     if (area === 'cli') { await ack(cq); return await cliCallback(cq, action, arg, master, nowSec); }
     if (area === 'mreq') { await ack(cq); return await mreqCallback(cq, action, arg, master, nowSec); }
+    if (area === 'set') { await ack(cq); return await settingsCallback(cq, action, arg, master, nowSec); }
+    if (area === 'mail') {
+      await ack(cq);
+      if (action === 'go') return void (await mailingStartCallback(cq, master, nowSec));
+      return await mailingCallback(cq, action, arg, master, nowSec);
+    }
 
     await ack(cq);
   } catch (e) {
@@ -101,7 +109,10 @@ async function onMenu(chatId, from, action, arg, cq, nowSec) {
   if (section === 'apwk') return void (await showWeek(chatId, master, localDate(master.timezone, nowSec), nowSec));
   if (section === 'cli') return void (await showClients(chatId, master, nowSec));
 
-  // Рассылка, финансы, настройки — следующие фазы.
+  if (section === 'set') return void (await showSettings(chatId, master));
+  if (section === 'mail') return void (await showMailings(chatId, master));
+
+  // Финансы — следующая фаза.
   await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.WIP, reply_markup: mainMenu() });
 }
 

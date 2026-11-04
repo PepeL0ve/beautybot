@@ -162,8 +162,8 @@ async function askMoveTime(chatId, userId, apId, dateStr, master, nowSec) {
   });
 }
 
-async function doMove(chatId, userId, apId, dateStr, startMin, master) {
-  const res = await moveAppointment(master, apId, dateStr, startMin);
+async function doMove(chatId, userId, apId, dateStr, startMin, master, nowSec) {
+  const res = await moveAppointment(master, apId, dateStr, startMin, nowSec);
   await clearState(chatId);
   if (!res.ok) {
     const text = res.reason === 'CONFLICT' ? T.AP_CONFLICT : T.ERR;
@@ -249,7 +249,7 @@ export async function apTextInput(chatId, userId, state, text, master, nowSec) {
     if (min == null) {
       return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.AP_BAD_TIME }));
     }
-    return void (await doMove(chatId, userId, draft.apId, draft.dateStr, min, master));
+    return void (await doMove(chatId, userId, draft.apId, draft.dateStr, min, master, nowSec));
   }
 
   if (state.state === 'ap:note') {
@@ -351,7 +351,7 @@ export async function apCallback(cq, action, arg, master, nowSec) {
     const st = await getState(chatId);
     const dateStr = st?.data?.draft?.dateStr;
     if (!dateStr) return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.ERR }));
-    return void (await doMove(chatId, userId, id, dateStr, Number(parts[1]), master));
+    return void (await doMove(chatId, userId, id, dateStr, Number(parts[1]), master, nowSec));
   }
 
   if (action === 'dl') {

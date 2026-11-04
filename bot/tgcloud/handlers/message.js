@@ -4,7 +4,7 @@ import { api, db } from 'sdk';
 import { T } from '../lib/i18n/ru.js';
 import { mainMenu } from '../lib/kb.js';
 import { isAllowed, getMasterByTg, getMasterByCode } from '../lib/access.js';
-import { getState, clearState } from '../lib/state.js';
+import { getState, setState, clearState } from '../lib/state.js';
 import {
   startOnboarding, onboardingName, validTz, finishOnboarding,
 } from '../lib/svc/onboarding.js';
@@ -14,6 +14,8 @@ import { svcTextInput } from '../lib/fsm/services.js';
 import { hoursTextInput } from '../lib/fsm/hours.js';
 import { apTextInput } from '../lib/fsm/appointments.js';
 import { cliTextInput } from '../lib/fsm/clients.js';
+import { mailingTextInput, mailingStartCallback } from '../lib/fsm/mailings.js';
+import { settingsTextInput } from '../lib/fsm/settings.js';
 import { showCard as showBookingCard, bkTextInput } from '../lib/fsm/booking.js';
 
 export default async function (message, ctx) {
@@ -25,6 +27,22 @@ export default async function (message, ctx) {
     if (text === '/tick') return await handleTick(from);
     if (text.startsWith('/start')) return await handleStart(message, chatId, from);
     if (text === '/menu') return await sendMenu(chatId, from);
+
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // Ленивый sweep при каждом update мастера (не чаще раза в 5 мин, spec §13)
+    const masterForSweep = await getMasterByTg(from.id);
+    if (masterForSweep) {
+      try {
+        const st = await getState(chatId);
+        const last = st?.data?.lastSweep || 0;
+        if (nowSec - last > 300) {
+          // Сохраняем метку времени в данных, не трогая состояние диалога.
+          await setState(chatId, from.id, st?.state || '', { ...(st?.data || {}), lastSweep: nowSec });
+          await runSweep(nowSec);
+        }
+      } catch (e) { console.warn('lazy sweep failed', e); }
+    }
 
     // FSM-диалоги (состояние персистентно в БД, spec §17)
     const st = await getState(chatId);
@@ -54,6 +72,14 @@ export default async function (message, ctx) {
         }
         if (st.state.startsWith('cli:')) {
           const handled = await cliTextInput(chatId, from.id, st, text, master, nowSec);
+          if (handled !== false) return;
+        }
+        if (st.state.startsWith('mail:')) {
+          const handled = await mailingTextInput(chatId, from.id, st, text, master, nowSec);
+          if (handled !== false) return;
+        }
+        if (st.state.startsWith('set:')) {
+          const handled = await settingsTextInput(chatId, from.id, st, text, master);
           if (handled !== false) return;
         }
       }

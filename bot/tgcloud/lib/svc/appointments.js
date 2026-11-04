@@ -4,6 +4,7 @@ import { db } from 'sdk';
 import { and, eq, gt, lt, gte, inArray, asc } from 'sdk/db';
 import { appointments, services, clients } from '../../schema.js';
 import { zonedToEpoch, localDate, addDays, localMin, minToHHMM } from '../time.js';
+import { planAppointmentReminders, dropAppointmentReminders, planPendingStale } from './reminders.js';
 import { slotsForDate } from './schedule.js';
 
 const ACTIVE = ['pending', 'confirmed', 'completed'];
@@ -67,7 +68,14 @@ export async function createAppointment(master, data, nowSec) {
       source: source || 'master',
     })
     .returning();
-  return { ok: true, appointment: rows[0] };
+
+  const ap = rows[0];
+  // Планируем напоминания о записи (spec §13).
+  try {
+    await planAppointmentReminders(ap, master, nowSec);
+    if (ap.status === 'pending') await planPendingStale(ap, master, nowSec);
+  } catch (e) { console.warn('plan reminders failed', e); }
+  return { ok: true, appointment: ap };
 }
 
 export async function getAppointment(masterId, id) {
@@ -88,6 +96,10 @@ export async function setStatus(masterId, id, status, nowSec) {
     .set(patch)
     .where(and(eq(appointments.masterId, masterId), eq(appointments.id, id)))
     .run();
+  // Отмена/неявка — напоминания больше не нужны (spec §13).
+  if (status === 'canceled' || status === 'no_show') {
+    try { await dropAppointmentReminders(id); } catch (e) { console.warn('drop reminders failed', e); }
+  }
   return { ok: true, appointment: { ...ap, ...patch } };
 }
 
@@ -121,7 +133,7 @@ export async function setNote(masterId, id, note) {
 }
 
 // Перенос: проверяем конфликт, исключая саму запись.
-export async function moveAppointment(master, id, dateStr, startMin) {
+export async function moveAppointment(master, id, dateStr, startMin, nowSec) {
   const ap = await getAppointment(master.id, id);
   if (!ap) return { ok: false, reason: 'NOT_FOUND' };
   const startsAt = zonedToEpoch(master.timezone, dateStr, startMin);
@@ -138,6 +150,8 @@ export async function moveAppointment(master, id, dateStr, startMin) {
     .set({ startsAt, endsAt })
     .where(and(eq(appointments.masterId, master.id), eq(appointments.id, id)))
     .run();
+  // Перепланируем напоминания на новое время.
+  try { await planAppointmentReminders({ ...ap, startsAt, endsAt }, master, nowSec); } catch (e) { console.warn('replan reminders failed', e); }
   return { ok: true, appointment: { ...ap, startsAt, endsAt } };
 }
 

@@ -669,3 +669,99 @@ export function masterRequestMenu(apId) {
     ]],
   };
 }
+// ---- Фаза 4: настройки ----
+
+export const set = {
+  toggle: (key) => `set:tg:${key}`,
+  page: () => 'set:pg:-',
+  regenerate: () => 'set:rg:-',
+  editBlurb: () => 'set:bl:-',
+  editName: () => 'set:nm:-',
+};
+
+export function settingsMenu(s) {
+  const flag = (b) => (b ? '✅' : '⬜️');
+  return {
+    inline_keyboard: [
+      [{ text: `${flag(s.auto_confirm)} Авто-подтверждение`, callback_data: set.toggle('auto_confirm') }],
+      [{ text: `${flag(s.only_existing)} Только для своих клиентов`, callback_data: set.toggle('only_existing') }],
+      [{ text: `${flag(s.birthday_greet)} Поздравления с д/р`, callback_data: set.toggle('birthday_greet') }],
+      [{ text: `${flag(s.auto_income)} Авто-доход из записей`, callback_data: set.toggle('auto_income') }],
+      [{ text: '✏️ Страница записи', callback_data: set.page() }],
+      [{ text: '🔗 Сгенерировать новую ссылку', callback_data: set.regenerate() }],
+      [{ text: '🏠 Меню', callback_data: CB.menu('menu') }],
+    ],
+  };
+}
+
+export function pageSettingsMenu() {
+  return {
+    inline_keyboard: [
+      [{ text: '✏️ Описание', callback_data: set.editBlurb() }],
+      [{ text: '✏️ Отображаемое имя', callback_data: set.editName() }],
+      [{ text: '⬅️ Назад', callback_data: 'menu:go:set' }],
+    ],
+  };
+}
+
+// ---- Фаза 4: рассылки ----
+
+export const mail = {
+  audienceAll: () => 'mail:au:all',
+  audienceGroup: (id) => `mail:ag:${id}`,
+  audienceCategory: (c) => `mail:ac:${c}`,
+  preview: () => 'mail:pv:-',
+  start: () => 'mail:go:-',
+  list: () => 'mail:ls:-',
+};
+
+export function mailingAudienceMenu(groups, categories) {
+  const kb = [
+    [{ text: '👥 Все активные клиенты', callback_data: mail.audienceAll() }],
+  ];
+  for (const g of groups.slice(0, 5)) {
+    kb.push([{ text: `📁 Группа: ${g.name}`, callback_data: mail.audienceGroup(g.id) }]);
+  }
+  const catLabels = { new: '🆕 Новые', regular: '⭐ Постоянные', lost: '😴 Потеряшки' };
+  const catRow = categories.map((c) => ({
+    text: catLabels[c] || c,
+    callback_data: mail.audienceCategory(c),
+  }));
+  if (catRow.length) kb.push(catRow);
+  kb.push([{ text: '🏠 Меню', callback_data: CB.menu('menu') }]);
+  return { inline_keyboard: kb };
+}
+
+export function mailingPreviewMenu() {
+  return {
+    inline_keyboard: [
+      [{ text: '🚀 Отправить', callback_data: mail.start() }],
+      [{ text: '❌ Отмена', callback_data: 'fsm:cancel:mail' }],
+    ],
+  };
+}
+
+// ---- Фаза 4: лист ожидания мастера ----
+
+export const wl = {
+  open: (id) => `wl:op:${id}`,
+  del: (id) => `wl:dl:${id}`,
+};
+
+export function waitlistMenu(entries, clientNames) {
+  const kb = entries.slice(0, 10).map((e) => [{
+    text: `🔔 ${clientNames[e.clientId] || 'Клиент'} · ${e.dateFrom.slice(5)}–${e.dateTo.slice(5)}`,
+    callback_data: wl.open(e.id),
+  }]);
+  kb.push([{ text: '🏠 Меню', callback_data: CB.menu('menu') }]);
+  return { inline_keyboard: kb };
+}
+
+export function waitlistEntryMenu(id) {
+  return {
+    inline_keyboard: [
+      [{ text: '🗑 Удалить из листа', callback_data: wl.del(id) }],
+      [{ text: '⬅️ Назад', callback_data: 'menu:go:wl' }],
+    ],
+  };
+}

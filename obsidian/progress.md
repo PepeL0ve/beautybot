@@ -6,6 +6,7 @@
 
 - **Дата**: 2026-11-04
 - **Последние коммиты**:
+  - 2026-11-04 Add Obsidian vault: plan, progress tracker, decisions (ADR), roadmap canvas
   - 2026-11-04 Phase 3: client online booking — card, services, slots, confirmation, reviews
   - 2026-11-04 Phase 2: client CRM — lists/filters/pagination, search, card, categories, groups, blacklist, archive
   - 2026-11-04 Phase 1: calendar core — services CRUD, work hours, time-off, templates, appointments
