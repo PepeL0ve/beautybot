@@ -1,0 +1,127 @@
+{
+  "nodes": [
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# beautyBOT\n\nКлон BeautyAgent — Telegram-бот для мастеров красоты",
+      "x": 200,
+      "y": -180,
+      "width": 500,
+      "height": 100
+    },
+    {
+      "id": "p0",
+      "type": "text",
+      "text": "✅ **Фаза 0**\nКаркас + доступ + онбординг",
+      "x": 100,
+      "y": 60,
+      "width": 220,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "p1",
+      "type": "text",
+      "text": "✅ **Фаза 1**\nЯдро календаря",
+      "x": 360,
+      "y": 60,
+      "width": 220,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "p2",
+      "type": "text",
+      "text": "✅ **Фаза 2**\nCRM клиентов",
+      "x": 620,
+      "y": 60,
+      "width": 220,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "p3",
+      "type": "text",
+      "text": "✅ **Фаза 3**\nОнлайн-запись",
+      "x": 880,
+      "y": 60,
+      "width": 220,
+      "height": 120,
+      "color": "1"
+    },
+    {
+      "id": "p4",
+      "type": "text",
+      "text": "⬜️ **Фаза 4**\nНапоминания и рассылки",
+      "x": 100,
+      "y": 260,
+      "width": 220,
+      "height": 120,
+      "color": "4"
+    },
+    {
+      "id": "p5",
+      "type": "text",
+      "text": "⬜️ **Фаза 5**\nФинансы и статистика",
+      "x": 360,
+      "y": 260,
+      "width": 220,
+      "height": 120,
+      "color": "4"
+    },
+    {
+      "id": "p6",
+      "type": "text",
+      "text": "⬜️ **Фаза 6**\nИтерация",
+      "x": 620,
+      "y": 260,
+      "width": 220,
+      "height": 120,
+      "color": "4"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "fromNode": "p0",
+      "fromSide": "right",
+      "toNode": "p1",
+      "toSide": "left"
+    },
+    {
+      "id": "e1",
+      "fromNode": "p1",
+      "fromSide": "right",
+      "toNode": "p2",
+      "toSide": "left"
+    },
+    {
+      "id": "e2",
+      "fromNode": "p2",
+      "fromSide": "right",
+      "toNode": "p3",
+      "toSide": "left"
+    },
+    {
+      "id": "e3",
+      "fromNode": "p3",
+      "fromSide": "right",
+      "toNode": "p4",
+      "toSide": "left"
+    },
+    {
+      "id": "e4",
+      "fromNode": "p4",
+      "fromSide": "right",
+      "toNode": "p5",
+      "toSide": "left"
+    },
+    {
+      "id": "e5",
+      "fromNode": "p5",
+      "fromSide": "right",
+      "toNode": "p6",
+      "toSide": "left"
+    }
+  ]
+}

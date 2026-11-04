@@ -42,6 +42,19 @@ Clean-room реализация по методологии REA. Платфор�
 | `bot/tgcloud/lib/fsm/` | Диалоги: `services.js`, `hours.js`, `appointments.js`, `clients.js` |
 | `bot/tgcloud/lib/` | `time.js` (таймзоны), `slots.js` (движок окон), `kb.js` (клавиатуры), `i18n/ru.js` (тексты) |
 
+## Obsidian
+
+Папка `obsidian/` — вольт Obsidian с планом, прогрессом и решениями:
+
+- `plan.md` — архитектура, фазы, ключевые решения
+- `progress.md` — текущее состояние (обновляется скриптом)
+- `spec.md`, `reports/`, `manual-tests.md` — копии из корня
+- `decisions/` — архитектурные решения (ADR)
+- `roadmap.canvas` — визуальный трекер фаз
+
+Синхронизация из проекта: `node scripts/sync-obsidian.mjs`.
+Откройте `obsidian/` как vault в Obsidian для просмотра.
+
 ## Работа с ботом
 
 ```bash
