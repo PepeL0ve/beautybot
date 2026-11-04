@@ -14,6 +14,7 @@ import { svcTextInput } from '../lib/fsm/services.js';
 import { hoursTextInput } from '../lib/fsm/hours.js';
 import { apTextInput } from '../lib/fsm/appointments.js';
 import { cliTextInput } from '../lib/fsm/clients.js';
+import { showCard as showBookingCard, bkTextInput } from '../lib/fsm/booking.js';
 
 export default async function (message, ctx) {
   const chatId = message.chat.id;
@@ -56,6 +57,11 @@ export default async function (message, ctx) {
           if (handled !== false) return;
         }
       }
+      // Клиентские состояния не зависят от того, является ли пользователь мастером.
+      if (st.state.startsWith('rv:')) {
+        const handled = await bkTextInput(chatId, from.id, st, text, from);
+        if (handled !== false) return;
+      }
     }
 
     // Ничего не распознано — контекстная подсказка
@@ -86,8 +92,8 @@ async function handleStart(message, chatId, from) {
   if (payload.startsWith('book_')) {
     const master = await getMasterByCode(payload.slice(5).toUpperCase());
     if (!master) return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.MASTER_NOT_FOUND }));
-    // Фаза 0: визитка без кнопок записи. Фаза 3 добавит флоу.
-    return void (await api.sendMessage({ chat_id: chatId, parse_mode: 'HTML', text: T.CLIENT_CARD(master) }));
+    // Фаза 3: полноценная клиентская визитка с записью.
+    return void (await showBookingCard(chatId, master, from));
   }
 
   const master = await getMasterByTg(from.id);

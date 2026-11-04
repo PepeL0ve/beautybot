@@ -532,3 +532,140 @@ export function confirmMenuArea(area, id) {
     ]],
   };
 }
+
+// ---- Фаза 3: клиентская запись ----
+// Код мастера передаём первым в составном arg: 'bk:<action>:<code>:<...>'.
+
+export const bk = {
+  card: (code) => `bk:card:${code}`,
+  book: (code) => `bk:go:${code}`,
+  service: (code, svcId) => `bk:sv:${code}:${svcId}`,
+  date: (code, svcId, date) => `bk:dt:${code}:${svcId}:${date}`,
+  slot: (code, svcId, date, min) => `bk:sl:${code}:${svcId}:${date}:${min}`,
+  confirm: (code, svcId, date, min) => `bk:ok:${code}:${svcId}:${date}:${min}`,
+  my: (code) => `bk:my:${code}`,
+  myCancel: (code, apId) => `bk:cn:${code}:${apId}`,
+  myCancelConfirm: (code, apId) => `bk:cy:${code}:${apId}`,
+  waitlist: (code) => `bk:wl:${code}`,
+  review: (code) => `bk:rv:${code}`,
+  reviewAp: (code, apId) => `bk:ra:${code}:${apId}`,
+  reviewStars: (code, apId, n) => `bk:rs:${code}:${apId}:${n}`,
+};
+
+function rubShort(cents) {
+  return `${Math.round((cents || 0) / 100)} ₽`;
+}
+
+export function clientBookingCardMenu(code, { canBook }) {
+  const kb = [];
+  if (canBook) kb.push([{ text: '📅 Записаться', callback_data: bk.book(code) }]);
+  kb.push([
+    { text: '🗓 Мои записи', callback_data: bk.my(code) },
+    { text: '⭐ Отзыв', callback_data: bk.review(code) },
+  ]);
+  return { inline_keyboard: kb };
+}
+
+export function clientServicesMenu(code, services) {
+  const kb = services.map((s) => [{
+    text: `${s.name} · ${s.durationMin} мин${s.priceCents ? ' · ' + (s.priceFrom ? 'от ' : '') + rubShort(s.priceCents) : ''}`,
+    callback_data: bk.service(code, s.id),
+  }]);
+  kb.push([{ text: '⬅️ Назад', callback_data: bk.card(code) }]);
+  return { inline_keyboard: kb };
+}
+
+export function clientDatesMenu(code, svcId, dates, fmt) {
+  const kb = [];
+  for (let i = 0; i < dates.length; i += 2) {
+    kb.push(dates.slice(i, i + 2).map((d) => ({
+      text: `${fmt(d.date)} · ${d.count}`,
+      callback_data: bk.date(code, svcId, d.date),
+    })));
+  }
+  kb.push([{ text: '⬅️ Назад', callback_data: bk.book(code) }]);
+  return { inline_keyboard: kb };
+}
+
+export function clientSlotsMenu(code, svcId, date, slots, minToStr) {
+  const kb = [];
+  let row = [];
+  for (const s of slots) {
+    row.push({ text: minToStr(s.min), callback_data: bk.slot(code, svcId, date, s.min) });
+    if (row.length === 4) { kb.push(row); row = []; }
+  }
+  if (row.length) kb.push(row);
+  kb.push([{ text: '⬅️ Назад', callback_data: bk.date(code, svcId, date) }]);
+  return { inline_keyboard: kb };
+}
+
+export function clientConfirmMenu(code, svcId, date, min) {
+  return {
+    inline_keyboard: [[
+      { text: '✅ Отправить заявку', callback_data: bk.confirm(code, svcId, date, min) },
+      { text: '⬅️ Другое время', callback_data: bk.date(code, svcId, date) },
+    ]],
+  };
+}
+
+export function myAppointmentsMenu(code, upcoming) {
+  const kb = upcoming.map((a) => [{
+    text: `❌ ${a.dateStr.slice(8)}.${a.dateStr.slice(5, 7)} ${a.time} · ${a.serviceName || 'услуга'}`,
+    callback_data: bk.myCancel(code, a.id),
+  }]);
+  kb.push([{ text: '📅 Записаться', callback_data: bk.book(code) }]);
+  kb.push([{ text: '⬅️ Назад', callback_data: bk.card(code) }]);
+  return { inline_keyboard: kb };
+}
+
+export function cancelConfirmMenu(code, apId) {
+  return {
+    inline_keyboard: [[
+      { text: '✅ Да, отменить', callback_data: bk.myCancelConfirm(code, apId) },
+      { text: '❌ Нет', callback_data: bk.my(code) },
+    ]],
+  };
+}
+
+export function waitlistOfferMenu(code) {
+  return {
+    inline_keyboard: [[
+      { text: '🔔 Сообщить, если освободится', callback_data: bk.waitlist(code) },
+      { text: 'Не нужно', callback_data: bk.card(code) },
+    ]],
+  };
+}
+
+export function reviewListMenu(code, reviewable, fmt) {
+  const kb = reviewable.map((a) => [{
+    text: `${fmt(a.dateStr)} · ${a.serviceName || 'услуга'}`,
+    callback_data: bk.reviewAp(code, a.id),
+  }]);
+  kb.push([{ text: '⬅️ Назад', callback_data: bk.card(code) }]);
+  return { inline_keyboard: kb };
+}
+
+export function starsMenu(code, apId) {
+  return {
+    inline_keyboard: [
+      [1, 2, 3].map((n) => ({ text: '⭐'.repeat(n), callback_data: bk.reviewStars(code, apId, n) })),
+      [4, 5].map((n) => ({ text: '⭐'.repeat(n), callback_data: bk.reviewStars(code, apId, n) })),
+    ],
+  };
+}
+
+// ---- Уведомления мастеру о заявке ----
+
+export const mreq = {
+  accept: (id) => `mreq:ac:${id}`,
+  reject: (id) => `mreq:rj:${id}`,
+};
+
+export function masterRequestMenu(apId) {
+  return {
+    inline_keyboard: [[
+      { text: '✅ Принять', callback_data: mreq.accept(apId) },
+      { text: '❌ Отклонить', callback_data: mreq.reject(apId) },
+    ]],
+  };
+}

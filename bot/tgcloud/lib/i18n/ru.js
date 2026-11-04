@@ -3,6 +3,12 @@
 import { esc } from '../fmt.js';
 import { fmtDate, localDate, localMin, minToHHMM } from '../time.js';
 
+// Короткий формат суммы для визитки (без копеек, если их нет).
+function rub(cents) {
+  const v = Math.round((cents || 0) / 100);
+  return `${String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} ₽`;
+}
+
 // Подписи статусов записи (используются в карточке и кнопках).
 export const STATUS_TEXT = {
   pending: '⏳ Ждёт подтверждения',
@@ -227,4 +233,82 @@ export const T = {
 
   // Фильтры
   CLI_FILTERS: 'Выберите фильтр:',
+
+  // ---------- Фаза 3: онлайн-запись (клиент) ----------
+  BK_CARD: (m, popular) => {
+    const lines = [`💅 <b>${esc(m.name)}</b>`];
+    if (m.publicBlurb) lines.push(esc(m.publicBlurb));
+    lines.push(`🕐 Время мастера: ${esc(m.timezone)}`);
+    if (popular.length) {
+      lines.push('\n<b>Популярное</b>');
+      for (const s of popular) {
+        lines.push(`• ${esc(s.name)} — ${s.durationMin} мин${s.priceCents ? ' · ' + (s.priceFrom ? 'от ' : '') + esc(rub(s.priceCents)) : ''}`);
+      }
+    }
+    return lines.join('\n');
+  },
+  BK_CARD_NO_SERVICES: (name) =>
+    `💅 <b>${esc(name)}</b>\n\nМастер пока не открыл онлайн-запись. Загляните позже.`,
+  BK_ASK_SERVICE: '💼 Выберите услугу:',
+  BK_NO_SERVICES_FOR_BOOK: '😔 Сейчас нет доступных услуг для записи.',
+  BK_ASK_DATE: '📆 Выберите день (показаны только дни со свободными окнами):',
+  BK_NO_DATES: '😔 На ближайшие дни свободных окон нет. Попробуйте позже или свяжитесь с мастером.',
+  BK_ASK_TIME: (svc, date) =>
+    `🕐 Свободное время\n\n💼 ${esc(svc.name)} · ${svc.durationMin} мин\n📅 ${esc(fmtDate(date))}\n\nВыберите время:`,
+  BK_NO_SLOTS: '⛔ Это время уже занято. Выберите другое.',
+  BK_CONFIRM: (svc, date, time, money) =>
+    `Проверьте заявку:\n\n💼 ${esc(svc.name)} · ${svc.durationMin} мин\n📅 ${esc(fmtDate(date))} в ${time}\n💰 ${esc(money)}\n\nОтправить заявку мастеру?`,
+  BK_SENT_PENDING: (svc, date, time) =>
+    `✅ Заявка отправлена!\n\n💼 ${esc(svc.name)}\n📅 ${esc(fmtDate(date))} в ${time}\n\nМастер подтвердит запись — пришлю уведомление.`,
+  BK_SENT_CONFIRMED: (svc, date, time) =>
+    `✅ <b>Вы записаны!</b>\n\n💼 ${esc(svc.name)}\n📅 ${esc(fmtDate(date))} в ${time}\n\nЕсли планы изменятся, отмените запись в «Мои записи».`,
+  BK_BLOCKED_BLACKLIST: '😔 Запись к этому мастеру сейчас недоступна. Свяжитесь с мастером напрямую.',
+  BK_BLOCKED_EXISTING:
+    '🔒 Запись открыта только для постоянных клиентов мастера.\nСвяжитесь с мастером, чтобы он добавил вас.',
+
+  // Мои записи
+  MY_TITLE: '📅 <b>Мои записи</b>',
+  MY_EMPTY: '📅 <b>Мои записи</b>\n\nПока нет записей. Нажмите «Записаться», чтобы выбрать время.',
+  MY_UPCOMING: (lines) => `📅 <b>Мои записи</b>\n\n${lines.join('\n')}`,
+  MY_PAST_HEAD: '\n\n<b>Прошедшие</b>',
+  MY_AP: (a, svcName, time) =>
+    `${a.status === 'pending' ? '⏳ ждёт подтверждения' : '✅ подтверждена'}\n` +
+    `${esc(fmtDate(a.dateStr))} в ${time}\n` +
+    `${esc(svcName || 'услуга')}`,
+  MY_CANCEL_CONFIRM: (svc, date, time) =>
+    `Отменить запись?\n\n💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))} в ${time}`,
+  MY_CANCELED: '❌ Запись отменена. Мастер получил уведомление.',
+  MY_CANCEL_TOO_LATE: '⛔ Эту запись уже нельзя отменить — свяжитесь с мастером.',
+  MY_OFFER_WAITLIST: 'Хотите, сообщу, если это время снова освободится?',
+  MY_WAITLIST_ADDED: '🔔 Хорошо, сообщу, если окно освободится.',
+  MY_WAITLIST_ALREADY: '🔔 Вы уже в листе ожидания у этого мастера.',
+
+  // Отзывы
+  RV_TITLE: '⭐ <b>Оцените визит</b>',
+  RV_ASK_AP: 'Выберите визит, который хотите оценить:',
+  RV_ASK_STARS: (svc, date) =>
+    `⭐ Как прошёл визит?\n\n💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))}\n\nПоставьте оценку:`,
+  RV_ASK_TEXT: (stars) => `Спасибо за ${stars}⭐! Хотите добавить пару слов? Отправьте текст или «-», чтобы пропустить.`,
+  RV_THANKS: '🙏 Спасибо за отзыв!',
+  RV_ALREADY: 'Вы уже оценили этот визит.',
+  RV_NONE: 'Пока нет завершённых визитов, которые можно оценить.',
+
+  // Уведомления мастеру
+  NOTIF_NEW_REQUEST: (name, svc, date, time, price, hasTg) =>
+    `🔔 <b>Новая заявка на запись</b>\n\n👤 ${esc(name)}${hasTg ? '' : ' (без Telegram)'}\n` +
+    `💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))} в ${time}\n💰 ${esc(price)}`,
+  NOTIF_NEW_BOOKED: (name, svc, date, time) =>
+    `📥 <b>Клиент записался</b> (авто-подтверждение)\n\n👤 ${esc(name)}\n💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))} в ${time}`,
+  NOTIF_ACCEPTED: '✅ Заявка принята.',
+  NOTIF_REJECTED: '❌ Заявка отклонена.',
+  NOTIF_CLIENT_CANCELED: (name, svc, date, time) =>
+    `❌ <b>Клиент отменил запись</b>\n\n👤 ${esc(name)}\n💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))} в ${time}\n\nОкно снова свободно.`,
+  NOTIF_CLIENT_GONE: '⚠️ Не удалось уведомить клиента — он не запускал бота.',
+  CLIENT_AP_CONFIRMED: (svc, date, time) =>
+    `✅ <b>Запись подтверждена</b>\n\n💼 ${esc(svc)}\n📅 ${esc(fmtDate(date))} в ${time}\n\nДо встречи!`,
+  CLIENT_AP_REJECTED: (svc, date, time) =>
+    `😔 Мастер не сможет принять вас ${esc(fmtDate(date))} в ${time} (${esc(svc)}).\n\nВыберите другое время — я на связи.`,
+  CLIENT_RATE_PROMPT: '⭐ Как прошёл визит? Поставьте оценку мастеру.',
+  WAITLIST_OFFER: (date) =>
+    `🔔 Освободилось время на ${esc(fmtDate(date))} у мастера, к которому вы хотели попасть.\n\nУспейте записаться!`,
 };

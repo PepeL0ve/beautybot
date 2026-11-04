@@ -12,6 +12,7 @@ import { showServices, svcCallback } from '../lib/fsm/services.js';
 import { showSchedule, schCallback } from '../lib/fsm/hours.js';
 import { apCallback, showDay, showWeek } from '../lib/fsm/appointments.js';
 import { showClients, cliCallback } from '../lib/fsm/clients.js';
+import { bkCallback, mreqCallback } from '../lib/fsm/booking.js';
 import { localDate } from '../lib/time.js';
 
 // ack — подтверждение нажатия. Само по себе необязательно: если Telegram уже
@@ -46,6 +47,8 @@ export default async function (cq, ctx) {
 
   try {
     if (area === 'menu') return await onMenu(chatId, from, action, arg, cq, nowSec);
+    // Клиентские кнопки не требуют прав мастера.
+    if (area === 'bk') { await ack(cq); return await bkCallback(cq, action, arg, from, nowSec); }
     if (area === 'tz') return await onTz(chatId, from, action, arg, cq);
     if (area === 'onb') return await onOnb(chatId, from, action, arg, cq);
     if (area === 'fsm') return await onFsmCancel(chatId, from, cq);
@@ -61,6 +64,7 @@ export default async function (cq, ctx) {
     if (area === 'sch') { await ack(cq); return await schCallback(cq, action, arg, master); }
     if (area === 'ap') { await ack(cq); return await apCallback(cq, action, arg, master, nowSec); }
     if (area === 'cli') { await ack(cq); return await cliCallback(cq, action, arg, master, nowSec); }
+    if (area === 'mreq') { await ack(cq); return await mreqCallback(cq, action, arg, master, nowSec); }
 
     await ack(cq);
   } catch (e) {
