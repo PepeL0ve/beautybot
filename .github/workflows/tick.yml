@@ -1,23 +1,33 @@
-# GitHub Actions → /tick боту каждые 5 минут (spec §13)
-# Триггеры: schedule (cron) + workflow_dispatch (ручной запуск)
-
 name: Bot sweep
-
 on:
   schedule:
-    - cron: '*/5 * * * *'  # каждые 5 минут
-  workflow_dispatch:        # ручной запуск из Actions → Run workflow
-
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: production-bot-sweep
+  cancel-in-progress: false
 jobs:
   tick:
+    # Explicit rollout gate. Enable only after cloud migration, source verification,
+    # fixture/outbox review and approval for production notifications.
+    if: vars.TGCLOUD_SWEEP_ENABLED == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
     steps:
-      - name: Send /tick to bot
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install locked management CLI
+        working-directory: bot
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Invoke deployed sweep through authenticated management API
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-        run: |
-          curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{\"chat_id\": ${CHAT_ID}, \"text\": \"/tick\"}"
-          echo "Tick sent at $(date -u)"
+          TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+          SCHEDULER_ADMIN_ID: ${{ vars.SCHEDULER_ADMIN_ID }}
+        run: node bot/scripts/scheduled-tick.mjs
